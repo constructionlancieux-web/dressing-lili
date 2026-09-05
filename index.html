@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mon Dressing</title>
+<meta name="theme-color" content="#FF6F81">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dressing">
+<link rel="manifest" href="./manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --lilac:#F6F1FB;
+    --lilac-deep:#EDE3FA;
+    --ink:#241934;
+    --ink-soft:#5C4E70;
+    --coral:#FF6F81;
+    --coral-deep:#E85A6D;
+    --mint:#33C6A0;
+    --wood:#B98A62;
+    --white:#FFFFFF;
+    --line:#DED0F0;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    background:var(--lilac);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    overscroll-behavior:none;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  h1,h2,h3,.brand,button,.zone-label,.tab-btn{font-family:'Fredoka', sans-serif;}
+  button{font-size:1rem; border:none; background:none; cursor:pointer; color:inherit;}
+  img{-webkit-user-drag:none; user-select:none;}
+
+  #app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; position:relative;}
+
+  header.top{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 20px 8px;
+  }
+  header.top .brand{font-size:1.35rem; font-weight:600; color:var(--ink);}
+  header.top .brand span{color:var(--coral);}
+  header.top .subtitle{font-size:.8rem; color:var(--ink-soft); margin-top:2px;}
+
+  main{flex:1; padding-bottom:90px;}
+  .screen{display:none; padding:0 16px;}
+  .screen.active{display:block;}
+
+  /* ---------- Essayage (try-on) ---------- */
+  .stage{
+    position:relative;
+    height:66vh;
+    min-height:420px;
+    margin-top:8px;
+    border-radius:28px;
+    overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 50% 0%, var(--lilac-deep) 0%, var(--lilac) 60%);
+    border:1px solid var(--line);
+  }
+  .rail-hook{
+    position:absolute; left:50%; top:6px; transform:translateX(-50%);
+    width:70%; height:6px; border-radius:3px; background:var(--wood); opacity:.35;
+  }
+  .silhouette-img{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:contain;
+    opacity:.32; filter:grayscale(15%);
+    pointer-events:none;
+  }
+  .silhouette-placeholder{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; padding:0 30px; color:var(--ink-soft); font-size:.85rem; line-height:1.5;
+    pointer-events:none;
+  }
+  .zone{
+    position:absolute; left:50%; transform:translateX(-50%);
+    width:68%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .zone.haut{ top:8%; height:32%; }
+  .zone.bas{ top:41%; height:32%; }
+  .zone.chaussure{ top:75%; height:19%; }
+
+  .zone-tag{
+    font-size:.72rem; font-weight:600; color:var(--ink-soft);
+    background:var(--white); border:1px solid var(--line);
+    padding:3px 10px; border-radius:20px; margin-bottom:6px;
+  }
+  .zone-frame{
+    position:relative; width:100%; height:calc(100% - 26px);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .zone-frame img{
+    max-width:78%; max-height:100%; object-fit:contain;
+    border-radius:14px;
+    filter:drop-shadow(0 8px 14px rgba(36,25,52,.18));
+  }
+  .zone-empty{
+    font-size:.78rem; color:var(--ink-soft); text-align:center; padding:0 10px;
+  }
+  .zone-empty button{
+    display:block; margin:6px auto 0; color:var(--coral-deep); font-weight:600; font-size:.8rem;
+  }
+  .chevron{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:34px; height:34px; border-radius:50%;
+    background:var(--white); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--ink); font-size:1rem; z-index:2;
+  }
+  .chevron.prev{left:-6px;}
+  .chevron.next{right:-6px;}
+  .chevron[disabled]{opacity:.25;}
+  .zone-count{
+    position:absolute; bottom:0; right:2px; font-size:.68rem; color:var(--ink-soft);
+  }
+
+  .stage-actions{
+    display:flex; justify-content:center; gap:10px; margin-top:14px;
+  }
+  .pill-btn{
+    background:var(--white); border:1px solid var(--line); border-radius:20px;
+    padding:9px 16px; font-size:.85rem; font-weight:500; color:var(--ink);
+  }
+  .pill-btn.primary{ background:var(--coral); color:var(--white); border-color:var(--coral); }
+
+  /* ---------- Dressing (management) ---------- */
+  .section-title{
+    font-size:1.05rem; font-weight:600; margin:22px 0 4px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-title .hook{
+    width:14px; height:14px; border-radius:50% 50% 0 0; border:2px solid var(--wood);
+    border-bottom:none; opacity:.7;
+  }
+  .section-hint{font-size:.78rem; color:var(--ink-soft); margin-bottom:10px;}
+
+  .me-row{ display:flex; align-items:center; gap:14px; }
+  .me-photo{
+    width:88px; height:88px; border-radius:20px; object-fit:cover;
+    background:var(--white); border:1px solid var(--line);
+  }
+  .me-placeholder{
+    width:88px; height:88px; border-radius:20px;
+    background:var(--white); border:1px dashed var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.6rem; color:var(--ink-soft);
+  }
+
+  .strip{
+    display:flex; gap:10px; overflow-x:auto; padding:4px 2px 10px;
+    scrollbar-width:none;
+  }
+  .strip::-webkit-scrollbar{display:none;}
+  .thumb{
+    position:relative; flex:0 0 auto; width:88px; height:88px;
+    border-radius:16px; overflow:hidden; background:var(--white);
+    border:1px solid var(--line);
+  }
+  .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .thumb .del{
+    position:absolute; top:3px; right:3px; width:20px; height:20px; border-radius:50%;
+    background:rgba(36,25,52,.75); color:#fff; font-size:.7rem; line-height:20px; text-align:center;
+  }
+  .add-tile{
+    flex:0 0 auto; width:88px; height:88px; border-radius:16px;
+    background:var(--white); border:1px dashed var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.6rem; color:var(--coral-deep); position:relative;
+  }
+  .add-tile input{
+    position:absolute; inset:0; opacity:0; cursor:pointer;
+  }
+
+  /* ---------- Tab bar ---------- */
+  nav.tabbar{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:520px;
+    background:var(--white); border-top:1px solid var(--line);
+    display:flex; padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+  }
+  .tab-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding:6px 0; font-size:.72rem; color:var(--ink-soft); font-weight:500;
+  }
+  .tab-btn .dot{ width:6px; height:6px; border-radius:50%; background:transparent; }
+  .tab-btn.active{ color:var(--coral-deep); }
+  .tab-btn.active .dot{ background:var(--coral-deep); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top">
+    <div>
+      <div class="brand">Mon <span>Dressing</span></div>
+      <div class="subtitle" id="subtitle">Compose ta tenue du jour</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ESSAYAGE -->
+    <section class="screen active" id="screen-essayage">
+      <div class="stage" id="stage">
+        <div class="rail-hook"></div>
+        <img class="silhouette-img" id="silhouette-img" style="display:none;">
+        <div class="silhouette-placeholder" id="silhouette-placeholder">
+          Ajoute une photo de toi dans l'onglet Dressing pour voir tes tenues en place.
+        </div>
+
+        <div class="zone haut" id="zone-haut">
+          <div class="zone-tag">Haut</div>
+          <div class="zone-frame"></div>
+        </div>
+        <div class="zone bas" id="zone-bas">
+          <div class="zone-tag">Bas</div>
+          <div class="zone-frame"></div>
+        </div>
+        <div class="zone chaussure" id="zone-chaussure">
+          <div class="zone-tag">Chaussures</div>
+          <div class="zone-frame"></div>
+        </div>
+      </div>
+
+      <div class="stage-actions">
+        <button class="pill-btn" id="shuffle-btn">Mélanger la tenue</button>
+      </div>
+    </section>
+
+    <!-- DRESSING -->
+    <section class="screen" id="screen-dressing">
+      <div class="section-title"><span class="hook"></span>Ma silhouette</div>
+      <div class="section-hint">Une photo en pied, sur fond neutre, pour visualiser tes tenues.</div>
+      <div class="me-row">
+        <img id="me-photo" class="me-photo" style="display:none;">
+        <div id="me-placeholder" class="me-placeholder">+</div>
+        <button class="pill-btn" id="me-btn">Changer la photo</button>
+        <input type="file" accept="image/*" capture="environment" id="me-input" style="display:none;">
+      </div>
+
+      <div class="section-title"><span class="hook"></span>Hauts</div>
+      <div class="strip" id="strip-haut"></div>
+
+      <div class="section-title"><span class="hook"></span>Bas</div>
+      <div class="strip" id="strip-bas"></div>
+
+      <div class="section-title"><span class="hook"></span>Chaussures</div>
+      <div class="strip" id="strip-chaussure"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab-btn active" data-screen="essayage"><span class="dot"></span>Essayage</button>
+    <button class="tab-btn" data-screen="dressing"><span class="dot"></span>Dressing</button>
+  </nav>
+</div>
+
+<script>
+/* ---------------- IndexedDB layer ---------------- */
+const DB_NAME='dressing-db', DB_VERSION=1, STORE_ITEMS='items', STORE_META='meta';
+const CATEGORIES=['haut','bas','chaussure'];
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains(STORE_ITEMS)){
+        const store=db.createObjectStore(STORE_ITEMS,{keyPath:'id',autoIncrement:true});
+        store.createIndex('category','category',{unique:false});
+      }
+      if(!db.objectStoreNames.contains(STORE_META)){
+        db.createObjectStore(STORE_META,{keyPath:'key'});
+      }
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function addItem(category, blob){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE_ITEMS,'readwrite');
+    tx.objectStore(STORE_ITEMS).add({category, blob, createdAt:Date.now()});
+    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+  });
+}
+async function getItems(category){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE_ITEMS,'readonly');
+    const req=tx.objectStore(STORE_ITEMS).index('category').getAll(IDBKeyRange.only(category));
+    req.onsuccess=()=>res(req.result.sort((a,b)=>a.createdAt-b.createdAt));
+    req.onerror=()=>rej(req.error);
+  });
+}
+async function deleteItem(id){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE_ITEMS,'readwrite');
+    tx.objectStore(STORE_ITEMS).delete(id);
+    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+  });
+}
+async function setMeta(key, blob){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE_META,'readwrite');
+    tx.objectStore(STORE_META).put({key, blob});
+    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+  });
+}
+async function getMeta(key){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE_META,'readonly');
+    const req=tx.objectStore(STORE_META).get(key);
+    req.onsuccess=()=>res(req.result); req.onerror=()=>rej(req.error);
+  });
+}
+
+/* ---------------- App state ---------------- */
+const state={
+  items:{haut:[], bas:[], chaussure:[]},
+  index:{haut:0, bas:0, chaussure:0}
+};
+
+async function loadAll(){
+  for(const cat of CATEGORIES){ state.items[cat]=await getItems(cat); }
+  const me=await getMeta('silhouette');
+  renderSilhouette(me ? me.blob : null);
+  CATEGORIES.forEach(renderZone);
+  CATEGORIES.forEach(renderStrip);
+}
+
+function renderSilhouette(blob){
+  const img=document.getElementById('silhouette-img');
+  const placeholder=document.getElementById('silhouette-placeholder');
+  const mePhoto=document.getElementById('me-photo');
+  const mePlaceholder=document.getElementById('me-placeholder');
+  if(blob){
+    const url=URL.createObjectURL(blob);
+    img.src=url; img.style.display='block'; placeholder.style.display='none';
+    mePhoto.src=url; mePhoto.style.display='block'; mePlaceholder.style.display='none';
+  } else {
+    img.style.display='none'; placeholder.style.display='flex';
+    mePhoto.style.display='none'; mePlaceholder.style.display='flex';
+  }
+}
+
+function renderZone(cat){
+  const zone=document.getElementById('zone-'+cat);
+  const frame=zone.querySelector('.zone-frame');
+  const list=state.items[cat];
+  frame.innerHTML='';
+  if(list.length===0){
+    frame.innerHTML=`<div class="zone-empty">Aucun ${cat==='haut'?'haut':cat==='bas'?'bas':'chaussures'} pour l'instant.
+      <button data-goto="${cat}">Ajouter →</button></div>`;
+    return;
+  }
+  if(state.index[cat]>=list.length) state.index[cat]=0;
+  const current=list[state.index[cat]];
+  const img=document.createElement('img');
+  img.src=URL.createObjectURL(current.blob);
+  frame.appendChild(img);
+
+  if(list.length>1){
+    const prev=document.createElement('button');
+    prev.className='chevron prev'; prev.textContent='‹';
+    prev.onclick=()=>{ state.index[cat]=(state.index[cat]-1+list.length)%list.length; renderZone(cat); };
+    const next=document.createElement('button');
+    next.className='chevron next'; next.textContent='›';
+    next.onclick=()=>{ state.index[cat]=(state.index[cat]+1)%list.length; renderZone(cat); };
+    frame.appendChild(prev); frame.appendChild(next);
+
+    const count=document.createElement('div');
+    count.className='zone-count';
+    count.textContent=(state.index[cat]+1)+'/'+list.length;
+    frame.appendChild(count);
+  }
+}
+
+function renderStrip(cat){
+  const strip=document.getElementById('strip-'+cat);
+  strip.innerHTML='';
+  state.items[cat].forEach(item=>{
+    const thumb=document.createElement('div');
+    thumb.className='thumb';
+    const img=document.createElement('img');
+    img.src=URL.createObjectURL(item.blob);
+    const del=document.createElement('button');
+    del.className='del'; del.textContent='×';
+    del.onclick=async ()=>{
+      if(confirm('Supprimer ce vêtement ?')){
+        await deleteItem(item.id);
+        await loadAll();
+      }
+    };
+    thumb.appendChild(img); thumb.appendChild(del);
+    strip.appendChild(thumb);
+  });
+  const addTile=document.createElement('div');
+  addTile.className='add-tile';
+  addTile.innerHTML=`+<input type="file" accept="image/*" capture="environment">`;
+  addTile.querySelector('input').onchange=async (e)=>{
+    const file=e.target.files[0];
+    if(file){ await addItem(cat, file); await loadAll(); }
+  };
+  strip.appendChild(addTile);
+}
+
+/* Tap "Ajouter" inside an empty zone -> jump to Dressing tab */
+document.getElementById('stage').addEventListener('click', (e)=>{
+  const btn=e.target.closest('[data-goto]');
+  if(btn){ switchScreen('dressing'); }
+});
+
+/* Swipe gesture on zones */
+CATEGORIES.forEach(cat=>{
+  const zone=document.getElementById('zone-'+cat);
+  let startX=null;
+  zone.addEventListener('touchstart', e=>{ startX=e.touches[0].clientX; }, {passive:true});
+  zone.addEventListener('touchend', e=>{
+    if(startX===null) return;
+    const dx=e.changedTouches[0].clientX-startX;
+    const list=state.items[cat];
+    if(Math.abs(dx)>40 && list.length>1){
+      if(dx<0) state.index[cat]=(state.index[cat]+1)%list.length;
+      else state.index[cat]=(state.index[cat]-1+list.length)%list.length;
+      renderZone(cat);
+    }
+    startX=null;
+  });
+});
+
+/* Shuffle */
+document.getElementById('shuffle-btn').onclick=()=>{
+  CATEGORIES.forEach(cat=>{
+    const list=state.items[cat];
+    if(list.length>0) state.index[cat]=Math.floor(Math.random()*list.length);
+    renderZone(cat);
+  });
+};
+
+/* Silhouette photo */
+document.getElementById('me-btn').onclick=()=>document.getElementById('me-input').click();
+document.getElementById('me-input').onchange=async (e)=>{
+  const file=e.target.files[0];
+  if(file){ await setMeta('silhouette', file); await loadAll(); }
+};
+
+/* Tabs */
+function switchScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.screen===name));
+  document.getElementById('subtitle').textContent = name==='essayage' ? "Compose ta tenue du jour" : "Gère tes vêtements";
+}
+document.querySelectorAll('.tab-btn').forEach(b=>{
+  b.onclick=()=>switchScreen(b.dataset.screen);
+});
+
+/* Service worker for offline app shell */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+
+loadAll();
+</script>
+</body>
+</html>

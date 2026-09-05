@@ -1,0 +1,11 @@
+{
+  "name": "Mon Dressing",
+  "short_name": "Dressing",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F6F1FB",
+  "theme_color": "#FF6F81",
+  "icons": []
+}
